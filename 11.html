@@ -7,104 +7,131 @@
   <style>
     body {
       display: flex;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: flex-start;
       gap: 20px;
       font-family: sans-serif;
       margin: 20px;
+      background: url('bg@4x.png') no-repeat center center fixed;
+      background-size: cover;
     }
-    #leftPanel {
+
+    #mainPreviewRow {
+      display: flex;
+      flex-direction: row;
+      align-items: flex-start;
+      gap: 20px;
+    }
+
+    #contentColumn {
       display: flex;
       flex-direction: column;
       align-items: center;
     }
-    #liveview {
-      transform: scaleX(-1);
-      width: 800px;
-      height: 600px;
-      background: #000;
+
+    #liveContainer {
       position: relative;
     }
-    #overview {
-      transform: scaleX(-1);
-      width: 160px;
-      height: 120px;
-      background: #222;
-      margin-top: 10px;
+
+    #liveview {
+      width: 700px;
+      height: 525px;
+      background: #000;
+      transform: scaleX(-1); /* Mirror camera preview */
     }
+
+    #countdown {
+      position: absolute;
+      font-size: 100px;
+      color: white;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      z-index: 10;
+      pointer-events: none;
+    }
+
     #photoPreviews {
       display: flex;
       flex-direction: row;
       gap: 10px;
       margin-top: 10px;
     }
+
     #photoPreviews img {
+      width: 180px;
+      height: 133px;
       border: 1px solid #ccc;
+      transform: scaleX(-1); /* Mirror thumbnails */
     }
+
     #controls {
       display: flex;
       justify-content: center;
       gap: 20px;
       margin-top: 20px;
     }
+
     #controls button {
-      font-size: 36px;
-      padding: 28px 52px;
+      font-size: 28px;
+      padding: 20px 40px;
     }
+
     #finalPreview {
-      width: 244px;
+      width: 300px;
+      height: auto;
       border: 2px solid #333;
-      margin-left: 20px;
       display: none;
+      align-self: flex-start;
+      margin-top: 0;
+      transform: scaleX(-1); /* Mirror final preview */
     }
+
+    #decorationImage {
+      height: 350px; /* Smaller size */
+      margin-top: 0;
+    }
+
     canvas {
       display: none;
-    }
-    #countdown {
-      position: absolute;
-      font-size: 100px;
-      color: red;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      display: none;
-      z-index: 10;
     }
   </style>
 </head>
 <body>
-  <div id="leftPanel">
-    <div style="position: relative;">
-      <video id="liveview" autoplay></video>
-      <div id="countdown">3</div>
-    </div>
-    <canvas id="overview"></canvas>
-    <div id="photoPreviews">
-      <img id="preview1" width="224" height="166" />
-      <img id="preview2" width="224" height="166" />
-      <img id="preview3" width="224" height="166" />
-    </div>
-    <div id="controls">
-      <button id="startBtn">Start</button>
-      <button id="retakeBtn">Retake</button>
-      <button id="downloadBtn">Download</button>
-    </div>
-  </div>
+  <div id="mainPreviewRow">
+    <div id="contentColumn">
+      <div id="liveContainer">
+        <video id="liveview" autoplay></video>
+        <div id="countdown">3</div>
+      </div>
 
-  <img id="finalPreview" src="" />
+      <div id="photoPreviews">
+        <img id="preview1" />
+        <img id="preview2" />
+        <img id="preview3" />
+      </div>
+
+      <div id="controls">
+        <button id="startBtn">Start</button>
+        <button id="retakeBtn">Retake</button>
+        <button id="downloadBtn">Download</button>
+      </div>
+
+      <img id="finalPreview" src="" />
+    </div>
+
+    <img id="decorationImage" src="IMG_3090.png" alt="Decoration" />
+  </div>
 
   <script>
     const liveVideo = document.getElementById("liveview");
-    const overviewCanvas = document.getElementById("overview");
-    const ctxOverview = overviewCanvas.getContext("2d");
-
+    const countdownEl = document.getElementById("countdown");
     const previewImages = [
       document.getElementById("preview1"),
       document.getElementById("preview2"),
       document.getElementById("preview3")
     ];
-
-    const countdownEl = document.getElementById("countdown");
     const finalPreview = document.getElementById("finalPreview");
 
     let stream;
@@ -134,43 +161,44 @@
     function capturePhoto(index) {
       const canvas = document.createElement("canvas");
       const ctx = canvas.getContext("2d");
-      canvas.width = 671;
-      canvas.height = 496;
+      canvas.width = 1288;
+      canvas.height = 1015;
+
+      // Flip (mirror) the image
       ctx.translate(canvas.width, 0);
       ctx.scale(-1, 1);
       ctx.drawImage(liveVideo, 0, 0, canvas.width, canvas.height);
+
       capturedCanvases[index] = canvas;
-
-      overviewCanvas.width = 160;
-      overviewCanvas.height = 120;
-      ctxOverview.save();
-      ctxOverview.clearRect(0, 0, 160, 120);
-      ctxOverview.translate(160, 0);
-      ctxOverview.scale(-1, 1);
-      ctxOverview.drawImage(liveVideo, 0, 0, 160, 120);
-      ctxOverview.restore();
-
       previewImages[index].src = canvas.toDataURL();
     }
 
     function generateFinalPreview() {
       const finalCanvas = document.createElement("canvas");
-      finalCanvas.width = 731;
-      finalCanvas.height = 2048;
+      finalCanvas.width = 1420;
+      finalCanvas.height = 3976;
       const ctx = finalCanvas.getContext("2d");
 
       ctx.fillStyle = "white";
       ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
 
-      const offsets = [65, 606, 1147];
+      const photoWidth = 1300;
+      const photoHeight = 1020;
+      const xOffset = (finalCanvas.width - photoWidth) / 2;
+      const offsets = [
+        108,
+        100 + photoHeight + 100,
+        98 + photoHeight + 95 + photoHeight + 100
+      ];
+
       capturedCanvases.forEach((canvas, i) => {
-        ctx.drawImage(canvas, 30, offsets[i], 671, 496);
+        ctx.drawImage(canvas, xOffset, offsets[i], photoWidth, photoHeight);
       });
 
       const frame = new Image();
-      frame.src = "IMG_3067.png";
+      frame.src = "IMG_3088.png";
       frame.onload = () => {
-        ctx.drawImage(frame, 0, 0, 731, 2048);
+        ctx.drawImage(frame, 0, 0, finalCanvas.width, finalCanvas.height);
         finalPreview.src = finalCanvas.toDataURL();
         finalPreview.style.display = "block";
       };
