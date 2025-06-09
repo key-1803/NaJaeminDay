@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Photobooth 3-Cut</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 20px;
+      font-family: sans-serif;
+      margin: 20px;
+    }
+    #leftPanel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #liveview {
+      transform: scaleX(-1);
+      width: 800px;
+      height: 600px;
+      background: #000;
+      position: relative;
+    }
+    #overview {
+      transform: scaleX(-1);
+      width: 160px;
+      height: 120px;
+      background: #222;
+      margin-top: 10px;
+    }
+    #photoPreviews {
+      display: flex;
+      flex-direction: row;
+      gap: 10px;
+      margin-top: 10px;
+    }
+    #photoPreviews img {
+      border: 1px solid #ccc;
+    }
+    #controls {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+    }
+    #controls button {
+      font-size: 36px;
+      padding: 28px 52px;
+    }
+    #finalPreview {
+      width: 244px;
+      border: 2px solid #333;
+      margin-left: 20px;
+      display: none;
+    }
+    canvas {
+      display: none;
+    }
+    #countdown {
+      position: absolute;
+      font-size: 100px;
+      color: red;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: none;
+      z-index: 10;
+    }
+  </style>
+</head>
+<body>
+  <div id="leftPanel">
+    <div style="position: relative;">
+      <video id="liveview" autoplay></video>
+      <div id="countdown">3</div>
+    </div>
+    <canvas id="overview"></canvas>
+    <div id="photoPreviews">
+      <img id="preview1" width="224" height="166" />
+      <img id="preview2" width="224" height="166" />
+      <img id="preview3" width="224" height="166" />
+    </div>
+    <div id="controls">
+      <button id="startBtn">Start</button>
+      <button id="retakeBtn">Retake</button>
+      <button id="downloadBtn">Download</button>
+    </div>
+  </div>
+
+  <img id="finalPreview" src="" />
+
+  <script>
+    const liveVideo = document.getElementById("liveview");
+    const overviewCanvas = document.getElementById("overview");
+    const ctxOverview = overviewCanvas.getContext("2d");
+
+    const previewImages = [
+      document.getElementById("preview1"),
+      document.getElementById("preview2"),
+      document.getElementById("preview3")
+    ];
+
+    const countdownEl = document.getElementById("countdown");
+    const finalPreview = document.getElementById("finalPreview");
+
+    let stream;
+    let capturedCanvases = [];
+
+    navigator.mediaDevices.getUserMedia({ video: true }).then((s) => {
+      stream = s;
+      liveVideo.srcObject = stream;
+    });
+
+    function showCountdown(callback) {
+      let count = 3;
+      countdownEl.style.display = "block";
+      countdownEl.textContent = count;
+      const interval = setInterval(() => {
+        count--;
+        if (count === 0) {
+          clearInterval(interval);
+          countdownEl.style.display = "none";
+          callback();
+        } else {
+          countdownEl.textContent = count;
+        }
+      }, 1000);
+    }
+
+    function capturePhoto(index) {
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      canvas.width = 671;
+      canvas.height = 496;
+      ctx.translate(canvas.width, 0);
+      ctx.scale(-1, 1);
+      ctx.drawImage(liveVideo, 0, 0, canvas.width, canvas.height);
+      capturedCanvases[index] = canvas;
+
+      overviewCanvas.width = 160;
+      overviewCanvas.height = 120;
+      ctxOverview.save();
+      ctxOverview.clearRect(0, 0, 160, 120);
+      ctxOverview.translate(160, 0);
+      ctxOverview.scale(-1, 1);
+      ctxOverview.drawImage(liveVideo, 0, 0, 160, 120);
+      ctxOverview.restore();
+
+      previewImages[index].src = canvas.toDataURL();
+    }
+
+    function generateFinalPreview() {
+      const finalCanvas = document.createElement("canvas");
+      finalCanvas.width = 731;
+      finalCanvas.height = 2048;
+      const ctx = finalCanvas.getContext("2d");
+
+      ctx.fillStyle = "white";
+      ctx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+
+      const offsets = [65, 606, 1147];
+      capturedCanvases.forEach((canvas, i) => {
+        ctx.drawImage(canvas, 30, offsets[i], 671, 496);
+      });
+
+      const frame = new Image();
+      frame.src = "IMG_3067.png";
+      frame.onload = () => {
+        ctx.drawImage(frame, 0, 0, 731, 2048);
+        finalPreview.src = finalCanvas.toDataURL();
+        finalPreview.style.display = "block";
+      };
+    }
+
+    document.getElementById("startBtn").addEventListener("click", async () => {
+      capturedCanvases = [];
+      for (let i = 0; i < 3; i++) {
+        await new Promise((resolve) => showCountdown(() => {
+          capturePhoto(i);
+          resolve();
+        }));
+      }
+      generateFinalPreview();
+    });
+
+    document.getElementById("retakeBtn").addEventListener("click", () => {
+      previewImages.forEach(img => img.src = "");
+      capturedCanvases = [];
+      finalPreview.style.display = "none";
+    });
+
+    document.getElementById("downloadBtn").addEventListener("click", () => {
+      const link = document.createElement("a");
+      link.download = "photobooth.png";
+      link.href = finalPreview.src;
+      link.click();
+    });
+  </script>
+</body>
+</html>
